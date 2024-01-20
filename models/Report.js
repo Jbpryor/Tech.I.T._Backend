@@ -3,15 +3,48 @@ const mongoose = require('mongoose')
 const reportSchema = new mongoose.Schema({
     attachments: [
         {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'Attachment'
+            fileName: {
+                type: String,
+                required: true,
+            },
+            fileId: {
+                type: String,
+                required: true,
+            },
+            originalName: {
+                type: String,
+                required: true,
+            },
+            userName: {
+                type: String,
+                required: true,
+            },
+            contentType: {
+                type: String,
+                required: true,
+            },
+            uploadDate: {
+                type: String,
+                required: true,
+            }
         }
     ],
     comments: [
         {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'Comment'
-        }
+            userName: {
+                type: String,
+                required: true
+            },
+            comment: {
+                type: String,
+                required: true
+            },
+            timeStamp: {
+                type: Date,
+                default: Date.now,
+                required: true
+            }
+        },
     ],
     created: {
         type: String,
@@ -20,10 +53,6 @@ const reportSchema = new mongoose.Schema({
     description: {
         type: String,
         required: true
-    },
-    id: {
-        type: Number,
-        required: true,
     },
     project: {
         type: String,

@@ -258,11 +258,11 @@ const deleteAttachment = asyncHandler(async (req, res) => {
 // @access Private
 const deleteIssue = asyncHandler(async (req, res) => {
 
-    const { id } = req.body
+    const { _id } = req.body
 
-    if (!id) { return res.status(400).json({ message: 'Issue ID Required' }) }
+    if (!_id) { return res.status(400).json({ message: 'Issue ID Required' }) }
 
-    const issue = await Issue.findById(id).exec()
+    const issue = await Issue.findById(_id).exec()
 
     if (!issue) { return res.status(400).json({ message: 'Issue not found' }) }
 

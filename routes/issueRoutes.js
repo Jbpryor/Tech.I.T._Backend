@@ -2,6 +2,9 @@ const express = require('express')
 const router = express.Router()
 const issuesController = require('../controllers/issuesController')
 const uploadAttachment = require('../middleware/uploadAttachment')
+const verifyJWT = require('../middleware/verifyJWT')
+
+router.use(verifyJWT)
 
 router.route('/')
     .get(issuesController.getAllIssues)
