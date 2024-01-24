@@ -1,4 +1,7 @@
 const Report = require('../models/Report')
+const Project = require('../models/Project')
+const User = require('../models/User')
+const Issue = require('../models/Issue')
 const asyncHandler = require('express-async-handler')
 const mongoose = require('mongoose');
 
@@ -32,6 +35,53 @@ const createNewReport = asyncHandler(async (req, res) => {
 
         if (report) {
             // Created
+            const currentDate = new Date().toISOString();
+
+            const notificationObject = [
+                {
+                    date: currentDate,
+                    isNewNotification: true,
+                    message: `New report ${report.subject} created`,
+                    notificationLink: `/reports/${report._id}`,
+                    title: subject,
+                }
+            ];
+
+            const targetRoles = ["Admin", "Project Manager", "Developer", "Submitter"];
+            const targetUsers = await User.find({ role: { $in: targetRoles } });            
+
+            const project = await Project.findOne({ title: report.project });
+            const issues = await Issue.find({ project: report.project });
+            const reports = await Report.find({ project: report.project });
+
+            const updatePromises = targetUsers.map(async (targetUser) => {
+                const isAdmin = targetUser.role === "Admin";
+
+                const isProjectManager = targetUser.role === "Project Manager";
+                const isMatchingManager = targetUser.name.first === project?.manager.split(' ')[0] && targetUser.name.last === project?.manager.split(' ')[1];
+                const isManager = [ isProjectManager, isMatchingManager ].every(Boolean)
+
+                const isDeveloper = targetUser.role === "Developer";
+                const isMatchingDeveloper = issues.some(issue => targetUser.name.first === issue.developer?.split(' ')[0] && targetUser.name.last === issue.developer?.split(' ')[1]);
+                const isDev = [ isDeveloper, isMatchingDeveloper ].every(Boolean)
+
+                const isSubmitter = targetUser.role === "Submitter"
+                const isMatchingSubmitter = reports.some(report => targetUser.name.first === report?.submitter?.split(' ')[0] && targetUser.name.last === report?.submitter?.split(' ')[1]);
+                const isSub = [ isSubmitter, isMatchingSubmitter ].every(Boolean)
+
+                if (isAdmin || isManager || isDev || isSub) {
+                    targetUser.notifications.unshift(notificationObject);
+                
+                    if (targetUser.notifications.length > 100) {
+                        targetUser.notifications = targetUser.notifications.slice(0, 100)
+                    }
+                    await targetUser.save();
+                }
+                
+            });
+
+            await Promise.all(updatePromises);
+
             return res.status(201).json({
                 message: `New report ${report.subject} created`,
                 subject: subject,

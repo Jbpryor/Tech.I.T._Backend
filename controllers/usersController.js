@@ -75,6 +75,32 @@ const createNewUser = asyncHandler(async (req, res) => {
 
         if (user) {
             // Created
+            const currentDate = new Date().toISOString();
+
+            const notificationObject = [
+                {
+                    date: currentDate,
+                    isNewNotification: true,
+                    message: `New user ${userName} created`,
+                    notificationLink: `/users/${user._id}`,
+                    title: userName,
+                }
+            ];
+
+            const targetRoles = ["Admin", "Project Manager"];
+            const targetUsers = await User.find({ role: { $in: targetRoles } });
+
+            const updatePromises = targetUsers.map(async (targetUser) => {
+                targetUser.notifications.unshift(...notificationObject);
+
+                if (targetUser.notifications.length > 100) {
+                    targetUser.notifications = targetUser.notifications.slice(0, 100)
+                }
+                await targetUser.save();
+            });
+
+            await Promise.all(updatePromises);
+
             return res.status(201).json({
                 userName: userName,
                 message: `New user ${userName} created`,
@@ -96,7 +122,7 @@ const createNewUser = asyncHandler(async (req, res) => {
 // @route PATCH /users
 // @access Private
 const updateUser = asyncHandler(async (req, res) => {
-    const { _id, email, role, address, password, notifications, notificationsCount } = req.body;
+    const { _id, email, role, address, passwordData, notificationId } = req.body;
     const file = req.file;
 
     if (!_id) {
@@ -113,30 +139,29 @@ const updateUser = asyncHandler(async (req, res) => {
 
     try {
 
-        const containsImage = [user.userImage, user.userImage[0], user.userImage.length != 0].every(Boolean);
-
-        if (containsImage) {
-
-
-            const image = user.userImage[0]
-            const imageId = image.imageId;
-
-            const gsfb = new mongoose.mongo.GridFSBucket(mongoose.connection.db, { bucketName: 'userImage' });
-            gsfb.delete(new mongoose.Types.ObjectId(imageId), function (err) {
-                if (err) return next(err);
-            });
-
-            const updatedUser = await User.findByIdAndUpdate(
-                _id,
-                { $pull: { userImage: { imageId: new mongoose.Types.ObjectId(imageId) } } },
-                { new: true }
-            ).exec();
-
-        }
-
         let updateFields = {};
 
         if (file) {
+            const containsImage = [user.userImage, user.userImage[0], user.userImage.length != 0].every(Boolean);
+
+            if (containsImage) {
+
+
+                const image = user.userImage[0]
+                const imageId = image.imageId;
+
+                const gsfb = new mongoose.mongo.GridFSBucket(mongoose.connection.db, { bucketName: 'userImage' });
+                gsfb.delete(new mongoose.Types.ObjectId(imageId), function (err) {
+                    if (err) return next(err);
+                });
+
+                const updatedUser = await User.findByIdAndUpdate(
+                    _id,
+                    { $pull: { userImage: { imageId: new mongoose.Types.ObjectId(imageId) } } },
+                    { new: true }
+                ).exec();
+
+            }
 
             updateFields.userImage = [
                 {
@@ -169,16 +194,25 @@ const updateUser = asyncHandler(async (req, res) => {
             };
         }
 
-        if (password) {
-            const hashedPwd = await bcrypt.hash(password, 10); // salt rounds
-            updateFields.password = hashedPwd;
+        if (passwordData) {
+
+            const { currentPassword, newPassword } = passwordData
+
+            if (!bcrypt.compare(currentPassword, user.password)) {
+                return res.status(400).json({ message: 'Current password is invalid' })
+            }
+
+            const hashedPwd = await bcrypt.hash(newPassword, 10);
+
+            updateFields.password = hashedPwd
         }
 
-        if (notifications) {
-            updateFields.notifications = {
-                notification: notifications,
-                notificationsCount: notificationsCount
-            }
+        if (notificationId) {
+            console.log('Updating notification');
+            await User.updateOne(
+                { _id: _id, 'notifications._id': notificationId },
+                { $set: { 'notifications.$.isNewNotification': false } }
+            );
         }
 
         const updatedUser = await User.findByIdAndUpdate(
@@ -192,7 +226,7 @@ const updateUser = asyncHandler(async (req, res) => {
         }
 
         return res.status(200).json({
-            id: _id,
+            _id: _id,
             userName: userName,
             message: `${userName} updated!`,
             updatedUser,
@@ -255,15 +289,15 @@ const viewImage = asyncHandler(async (req, res) => {
 // @route DELETE /users
 // @access Private
 const deleteUser = asyncHandler(async (req, res) => {
-    const { id } = req.body
+    const { _id } = req.body
 
     // Comfirm data
-    if (!id) {
+    if (!_id) {
         return res.status(400).json({ message: 'User ID Required' })
     }
 
     // Does the user exist to delete?
-    const user = await User.findById(id).exec()
+    const user = await User.findById(_id).exec()
 
     if (!user) {
         return res.status(400).json({ message: 'User not found' })

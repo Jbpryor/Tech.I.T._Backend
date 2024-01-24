@@ -28,7 +28,9 @@ const login = asyncHandler(async (req, res) => {
         {
             "UserInfo": {
                 "email": user.email,
-                "roles": user.roles
+                "role": user.role,
+                "userName": user.name.first + ' ' + user.name.last,
+                "userId": user._id
             }
         },
         process.env.ACCESS_TOKEN_SECRET,
@@ -50,7 +52,7 @@ const login = asyncHandler(async (req, res) => {
     })
 
     // Send accessToken containing username and roles
-    res.json({ accessToken })
+    res.json({ accessToken, role: user.role })
 })
 
 // @desc Refresh
@@ -77,7 +79,9 @@ const refresh = (req, res) => {
                 {
                     "UserInfo": {
                         "email": user.email,
-                        "roles": user.roles
+                        "role": user.role,
+                        "userName": user.name.first + ' ' + user.name.last,
+                        "userId": user._id
                     }
                 },
                 process.env.ACCESS_TOKEN_SECRET,

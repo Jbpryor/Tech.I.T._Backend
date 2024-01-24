@@ -1,6 +1,6 @@
 const Project = require('../models/Project')
+const User = require('../models/User')
 const asyncHandler = require('express-async-handler')
-const mongoose = require('mongoose');
 
 
 
@@ -23,7 +23,7 @@ const getAllProjects = asyncHandler(async (req, res) => {
 const createNewProject = asyncHandler(async (req, res) => {
     const { backend, clientName, created, description, frontend, manager, title, type } = req.body;
 
-    if (!created || !description || !manager || !title ) {
+    if (!created || !description || !manager || !title) {
         return res.status(400).json({ message: 'Created, Description, Manager, and Title fields are required' });
     }
 
@@ -32,6 +32,40 @@ const createNewProject = asyncHandler(async (req, res) => {
 
         if (project) {
             // Created
+            const currentDate = new Date().toISOString();
+
+            const notificationObject = [
+                {
+                    date: currentDate,
+                    isNewNotification: true,
+                    message: `New project ${project.title} created`,
+                    notificationLink: `/projects/${project._id}`,
+                    title: userName,
+                }
+            ];
+
+            const targetRoles = ["Admin", "Project Manager"];
+            const targetUsers = await User.find({ role: { $in: targetRoles } });
+
+            const updatePromises = targetUsers.map(async (targetUser) => {
+                const isAdmin = targetUser.role === "Admin";
+
+                const isProjectManager = targetUser.role === "Project Manager";
+                const isMatchingManager = targetUser.name.first === project.manager.split(' ')[0] && targetUser.name.last === project.manager.split(' ')[1];
+                const isManager = [isProjectManager, isMatchingManager].every(Boolean)
+
+                if (isAdmin || isManager) {
+                    targetUser.notifications.unshift(notificationObject);
+
+                    if (targetUser.notifications.length > 100) {
+                        targetUser.notifications = targetUser.notifications.slice(0, 100)
+                    }
+                    await targetUser.save();
+                }
+            });
+
+            await Promise.all(updatePromises);
+
             return res.status(201).json({
                 message: `New project ${project.title} created`,
                 title: title,

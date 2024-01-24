@@ -46,16 +46,31 @@ const userSchema = new mongoose.Schema({
             maxLength: 30,
         },
     },
-    notifications: {
-        notifications: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'Notification',
+    notifications: [
+        {
+            date: {
+                type: String,
+                required: false,
+            },
+            isNewNotification: {
+                type: Boolean,
+                required: false,
+                default: true,
+            },
+            message: {
+                type: String,
+                required: false
+            },
+            notificationLink: {
+                type: String,
+                required: false,
+            },
+            title: {
+                type: String,
+                required: false
+            }
         },
-        newNotificationsCount: {
-            type: Number,
-            default: 0,
-        }
-    },
+    ],
     password: {
         type: String,
         required: true,

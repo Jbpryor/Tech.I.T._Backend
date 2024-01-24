@@ -1,6 +1,8 @@
 const Issue = require('../models/Issue')
 const asyncHandler = require('express-async-handler')
 const mongoose = require('mongoose');
+const Project = require('../models/Project');
+const User = require('../models/User')
 
 
 
@@ -32,6 +34,47 @@ const createNewIssue = asyncHandler(async (req, res) => {
 
         if (issue) {
             // Created
+            const currentDate = new Date().toISOString();
+
+            const notificationObject = [
+                {
+                    date: currentDate,
+                    isNewNotification: true,
+                    message: `New issue ${issue.title} created`,
+                    notificationLink: `/issues/${issue._id}`,
+                    title: issue.title,
+                }
+            ];
+
+            const targetRoles = ["Admin", "Project Manager", "Developer"];
+            const targetUsers = await User.find({ role: { $in: targetRoles } });
+
+            const project = await Project.findOne({ title: issue.project });
+            const issues = await Issue.find({ project: issue.project })
+
+            const updatePromises = targetUsers.map(async (targetUser) => {
+                const isAdmin = targetUser.role === "Admin";
+
+                const isProjectManager = targetUser.role === "Project Manager";
+                const isMatchingManager = targetUser.name.first === project.manager.split(' ')[0] && targetUser.name.last === project.manager.split(' ')[1];
+                const isManager = [ isProjectManager, isMatchingManager ].every(Boolean)
+
+                const isDeveloper = targetUser.role === "Developer";
+                const isMatchingDeveloper = issues.some(issue => targetUser.name.first === issue.developer.split(' ')[0] && targetUser.name.last === issue.developer.split(' ')[1]);
+                const isDev = [ isDeveloper, isMatchingDeveloper ].every(Boolean)
+
+                if (isAdmin || isManager || isDev) {
+                    targetUser.notifications.unshift(...notificationObject);
+                    
+                    if (targetUser.notifications.length > 100) {
+                        targetUser.notifications = targetUser.notifications.slice(0, 100)
+                    }
+                    await targetUser.save();
+                }
+            });
+
+            await Promise.all(updatePromises);
+
             return res.status(201).json({
                 message: `New issue ${issue.title} created`,
                 title: title,
@@ -268,7 +311,7 @@ const deleteIssue = asyncHandler(async (req, res) => {
 
     const deletedIssue = await issue.deleteOne()
 
-    return res.json({ message: `Issue ${issue.title} deleted`, deletedIssue })
+    return res.json({ message: `Issue ${issue.title} deleted`, _id: _id, deletedIssue })
 })
 
 module.exports = {

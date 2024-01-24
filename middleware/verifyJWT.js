@@ -19,7 +19,9 @@ const verifyJWT = (req, res, next) => {
           }
         //   console.log('Decoded Token:', decoded);
           req.email = decoded.UserInfo.email;
-          req.roles = decoded.UserInfo.roles;
+          req.role = decoded.UserInfo.role;
+          req.userName = decoded.UserInfo.userName;
+          req.userId = decoded.UserInfo.userId
           next();
       }
   );
