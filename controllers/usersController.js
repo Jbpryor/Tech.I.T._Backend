@@ -208,7 +208,6 @@ const updateUser = asyncHandler(async (req, res) => {
         }
 
         if (notificationId) {
-            console.log('Updating notification');
             await User.updateOne(
                 { _id: _id, 'notifications._id': notificationId },
                 { $set: { 'notifications.$.isNewNotification': false } }
