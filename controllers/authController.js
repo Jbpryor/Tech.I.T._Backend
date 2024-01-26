@@ -34,7 +34,7 @@ const login = asyncHandler(async (req, res) => {
             }
         },
         process.env.ACCESS_TOKEN_SECRET,
-        { expiresIn: '15m' }
+        { expiresIn: '1d' }
     )
 
     const refreshToken = jwt.sign(
@@ -51,7 +51,7 @@ const login = asyncHandler(async (req, res) => {
         maxAge: 7 * 24 * 60 * 60 * 1000 // cookie expiry: set to match refreshToken
     })
 
-    // Send accessToken containing username and roles
+    // Send accessToken containing username and role
     res.json({ accessToken, role: user.role })
 })
 
