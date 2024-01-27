@@ -2,7 +2,8 @@ const User = require('../models/User')
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
 const asyncHandler = require('express-async-handler')
-
+const genTempPass = require('../utils/genTempPass.js')
+const emailTempPass = require('../utils/emailTempPass.js')
 
 // @desc Login
 // @route POST /auth
@@ -103,8 +104,42 @@ const logout = (req, res) => {
     res.json({ message: 'Cookie cleared' })
 }
 
+// @desc Reset Password
+// @route PATCH /auth/resetPassword
+// @access Public - resets the password and emails the user the temp password
+const resetPassword = asyncHandler(async (req, res) => {
+    const { email } = req.body;
+
+    if (!email) {
+        return res.status(400).json({ message: 'Email is required' });
+    }
+
+    const user = await User.findOne({ email }).exec()
+
+    if (!user) {
+        return res.status(409).json({ message: 'User not found' });
+    }
+
+    const temporaryPassword = genTempPass(8);
+
+    // Hash password
+    const hashedPwd = await bcrypt.hash(temporaryPassword, 10); // salt rounds
+
+    user.password = hashedPwd;
+    await user.save();
+
+    try {
+        await emailTempPass(email, temporaryPassword);
+        res.json({ message: 'Temporary Password emailed successfully.' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Failed to send email.' });
+    }
+})
+
 module.exports = {
     login,
     refresh,
-    logout
+    logout,
+    resetPassword
 }

@@ -2,7 +2,8 @@ const User = require('../models/User')
 const asyncHandler = require('express-async-handler')
 const bcrypt = require('bcrypt')
 const mongoose = require('mongoose');
-
+const genTempPass = require('../utils/genTempPass')
+const emailTempPass = require('../utils/emailTempPass')
 
 
 // @desc Get all users
@@ -18,18 +19,6 @@ const getAllUsers = asyncHandler(async (req, res) => {
     res.json(users)
 })
 
-const generateTemporaryPassword = (length) => {
-    const charset =
-        "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    let temporaryPassword = "";
-
-    for (let i = 0; i < length; i++) {
-        const randomIndex = Math.floor(Math.random() * charset.length);
-        temporaryPassword += charset.charAt(randomIndex);
-    }
-
-    return temporaryPassword;
-};
 
 // @desc Create a new user
 // @route POST /users
@@ -54,7 +43,7 @@ const createNewUser = asyncHandler(async (req, res) => {
             return res.status(409).json({ message: 'User already exists' });
         }
 
-        const temporaryPassword = generateTemporaryPassword(8);
+        const temporaryPassword = genTempPass(8);
 
         // Hash password
         const hashedPwd = await bcrypt.hash(temporaryPassword, 10); // salt rounds
@@ -75,6 +64,9 @@ const createNewUser = asyncHandler(async (req, res) => {
 
         if (user) {
             // Created
+
+            emailTempPass(email, temporaryPassword)
+
             const currentDate = new Date().toISOString();
 
             const notificationObject = [

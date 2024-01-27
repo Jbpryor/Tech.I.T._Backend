@@ -12,4 +12,7 @@ router.route('/refresh')
 router.route('/logout')
     .post(authController.logout)
 
+router.route('/resetPassword')
+    .patch(authController.resetPassword)
+
 module.exports = router
