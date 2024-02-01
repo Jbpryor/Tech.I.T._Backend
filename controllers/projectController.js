@@ -40,7 +40,8 @@ const createNewProject = asyncHandler(async (req, res) => {
                     isNewNotification: true,
                     message: `New project ${project.title} created`,
                     notificationLink: `/projects/${project._id}`,
-                    title: userName,
+                    notificationType: 'newProject',
+                    title: project.title,
                 }
             ];
 
@@ -48,6 +49,7 @@ const createNewProject = asyncHandler(async (req, res) => {
             const targetUsers = await User.find({ role: { $in: targetRoles } });
 
             const updatePromises = targetUsers.map(async (targetUser) => {
+                console.log("inside")
                 const isAdmin = targetUser.role === "Admin";
 
                 const isProjectManager = targetUser.role === "Project Manager";
@@ -55,7 +57,7 @@ const createNewProject = asyncHandler(async (req, res) => {
                 const isManager = [isProjectManager, isMatchingManager].every(Boolean)
 
                 if (isAdmin || isManager) {
-                    targetUser.notifications.unshift(notificationObject);
+                    targetUser.notifications.unshift(...notificationObject);
 
                     if (targetUser.notifications.length > 100) {
                         targetUser.notifications = targetUser.notifications.slice(0, 100)

@@ -65,6 +65,10 @@ const userSchema = new mongoose.Schema({
                 type: String,
                 required: false,
             },
+            notificationType: {
+                type: String,
+                required: false,
+            },
             title: {
                 type: String,
                 required: false

@@ -75,6 +75,7 @@ const createNewUser = asyncHandler(async (req, res) => {
                     isNewNotification: true,
                     message: `New user ${userName} created`,
                     notificationLink: `/users/${user._id}`,
+                    notificationType: 'newUser',
                     title: userName,
                 }
             ];

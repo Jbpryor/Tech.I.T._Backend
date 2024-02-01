@@ -42,6 +42,7 @@ const createNewIssue = asyncHandler(async (req, res) => {
                     isNewNotification: true,
                     message: `New issue ${issue.title} created`,
                     notificationLink: `/issues/${issue._id}`,
+                    notificationType: 'newIssue',
                     title: issue.title,
                 }
             ];

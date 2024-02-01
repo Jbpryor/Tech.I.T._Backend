@@ -43,6 +43,7 @@ const createNewReport = asyncHandler(async (req, res) => {
                     isNewNotification: true,
                     message: `New report ${report.subject} created`,
                     notificationLink: `/reports/${report._id}`,
+                    notificationType: 'newReport',
                     title: subject,
                 }
             ];
@@ -70,7 +71,7 @@ const createNewReport = asyncHandler(async (req, res) => {
                 const isSub = [ isSubmitter, isMatchingSubmitter ].every(Boolean)
 
                 if (isAdmin || isManager || isDev || isSub) {
-                    targetUser.notifications.unshift(notificationObject);
+                    targetUser.notifications.unshift(...notificationObject);
                 
                     if (targetUser.notifications.length > 100) {
                         targetUser.notifications = targetUser.notifications.slice(0, 100)
@@ -155,31 +156,11 @@ const updateReport = asyncHandler(async (req, res) => {
         )
     }
 
-    // if (modifications) {
-    //     if (!modifications.type || !modifications.previousState || !modifications.currentState || !modifications.modified) {
-    //         updateFields.modifications = [...report?.modifications]
-    //     } else {
-    //         updateFields.modifications = [
-    //             {
-    //                 type: modifications.type,
-    //                 previousState: modifications.previousState,
-    //                 currentState: modifications.currentState,
-    //                 modified: modifications.modified,
-    //             },
-    //             ...report?.modifications
-    //         ];
-    //     }
-    // }
-
     updateFields.created = created
     updateFields.description = description
-    // updateFields.developer = developer
-    // updateFields.modified = modified
-    // updateFields.priority = priority
     updateFields.project = project
     updateFields.subject = subject
     updateFields.submitter = submitter
-    // updateFields.title = title
     updateFields.type = type
 
 
