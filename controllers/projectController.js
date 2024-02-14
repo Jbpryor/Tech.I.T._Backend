@@ -302,6 +302,22 @@ const deleteProject = asyncHandler(async (req, res) => {
 
     const deletedProject = await project.deleteOne()
 
+    const allUsers = await User.find();
+
+    const title = project.title
+
+    const updatePromises = allUsers.map(async (targetUser) => {
+        const index = targetUser.notifications.findIndex(notifications => notifications.title === title);
+
+        if (index !== -1) {
+            targetUser.notifications.splice(index, 1);
+
+            await targetUser.save();
+        }
+    })
+
+    await Promise.all(updatePromises);
+
     return res.json({ message: `Project ${project.title} deleted`, deletedProject })
 })
 
